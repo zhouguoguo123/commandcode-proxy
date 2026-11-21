@@ -398,10 +398,10 @@ test('chat 流式：finishReason=other → finish_reason=stop，不报截断、�
     assert.ok(!text.includes('upstream_error'), '不能给可重试错误');
     assert.ok(text.includes('[DONE]'), '正常结束要发 [DONE]');
     // 折掉不等于抹掉：原始值必须留在日志里，否则这条信息就彻底消失了。
-    for (let i = 0; i < 20 && !s.proxy.logs().includes('Unrecognized upstream finish reason'); i++) {
+    for (let i = 0; i < 20 && !s.proxy.logs().includes('无法识别的上游结束原因'); i++) {
       await new Promise(r2 => setTimeout(r2, 25));
     }
-    assert.ok(s.proxy.logs().includes('Unrecognized upstream finish reason'),
+    assert.ok(s.proxy.logs().includes('无法识别的上游结束原因'),
       '折成 stop 后原始 reason 仍要留痕');
   } finally { await s.close(); }
 });

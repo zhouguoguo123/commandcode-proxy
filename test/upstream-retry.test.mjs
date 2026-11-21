@@ -119,7 +119,7 @@ test('流式：上游吐字前闪断一次 → 下游只拿到一次 200，内�
     assert.doesNotMatch(text, /proxy_error/, '下游不该看到上游闪断的痕迹');
     assert.equal(s.mock.state.generateCalls, 2, '上游应被调用两次：1 次闪断 + 1 次重试');
     await waitForLog(s.proxy, /Upstream stream terminated before first byte - retrying/);
-    await waitForLog(s.proxy, /Upstream retry recovered/);
+    await waitForLog(s.proxy, /上游重试成功/);
   } finally { await s.close(); }
 });
 
@@ -195,7 +195,7 @@ test('持续 FIN 截断 → 按上限放弃，且不会被误记成「重试恢�
     assert.equal(r.status, 502);
     assert.equal(s.mock.state.generateCalls, 3);
     await waitForLog(s.proxy, /ended incomplete before first byte - retrying/g, 2);
-    assert.doesNotMatch(s.proxy.logs(), /Upstream retry recovered/,
+    assert.doesNotMatch(s.proxy.logs(), /上游重试成功/,
       '两次尝试都失败了，不能记成 recovered（日志会误导线上排查）');
   } finally { await s.close(); }
 });
@@ -228,7 +228,7 @@ test('退避期间客户端断连 → 不再发起新的上游尝试', async () 
     await pending;
     await sleep(1200);                                          // 退避 900ms 早已过去
     assert.equal(s.mock.state.generateCalls, 1, '断连后不得再打上游');
-    await waitForLog(s.proxy, /Upstream retry abandoned \(client disconnected during backoff\)/);
+    await waitForLog(s.proxy, /放弃上游重试（退避期间客户端已断开）/);
   } finally { await s.close(); }
 });
 
@@ -237,7 +237,7 @@ test('CC_UPSTREAM_RETRY_BASE_MS 合法值生效（启动横幅回显配置值）
   try {
     const r = await s.chat(true);
     assert.equal(r.status, 200);
-    assert.match(s.proxy.logs(), /upstreamRetry":"2 retries, base 1000ms/, '配置值要能在启动横幅里看到');
+    assert.match(s.proxy.logs(), /upstreamRetry":"2 次重试，退避基数 1000ms/, '配置值要能在启动横幅里看到');
   } finally { await s.close(); }
 });
 
@@ -257,7 +257,7 @@ test('退避基数可配：CC_UPSTREAM_RETRY_BASE_MS 生效且非法值回落默
   try {
     const r = await s.chat(true);
     assert.equal(r.status, 200);
-    assert.match(s.proxy.logs(), /base 400ms/, '非法值不能把退避变成 0 或 NaN');
+    assert.match(s.proxy.logs(), /退避基数 400ms/, '非法值不能把退避变成 0 或 NaN');
   } finally { await s.close(); }
 });
 
@@ -308,8 +308,8 @@ test('#55 第 1 次尝试响应头前闪断 + 第 2 次尝试中断开 → 不�
     await sleep(800);   // 若监听器缺席，这里会走完「RST → 重试 → 第 3 次成功」的全流程
     assert.equal(s.mock.state.generateCalls, 2,
       '客户端已断连：不得再有第 3 次上游调用（=3 说明断连监听器没有注册上）');
-    await waitForLog(s.proxy, /Client disconnected/, 1, 5000);
-    assert.doesNotMatch(s.proxy.logs(), /Upstream retry recovered/,
+    await waitForLog(s.proxy, /客户端已断开/, 1, 5000);
+    assert.doesNotMatch(s.proxy.logs(), /上游重试成功/,
       '响应只写给了空气，不能记成「重试救回来了」');
     const retries = (s.proxy.logs().match(/before first byte - retrying/g) || []).length;
     assert.equal(retries, 1, '只有第 1 次闪断产生重试；断连后的失败不得再触发重试');
@@ -325,7 +325,7 @@ test('#55 对照：响应头前闪断 + 客户端一直在线 → 照常重试�
     assert.match(text, /recovered/);
     assert.equal(s.mock.state.generateCalls, 2);
     await waitForLog(s.proxy, /Upstream error before first byte - retrying/);
-    await waitForLog(s.proxy, /Upstream retry recovered/, 1, 5000);
-    assert.doesNotMatch(s.proxy.logs(), /Client disconnected/, '客户端没走，不该有断连日志');
+    await waitForLog(s.proxy, /上游重试成功/, 1, 5000);
+    assert.doesNotMatch(s.proxy.logs(), /客户端已断开/, '客户端没走，不该有断连日志');
   } finally { await s.close(); }
 });

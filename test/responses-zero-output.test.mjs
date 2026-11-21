@@ -27,7 +27,7 @@ test('#56 流式：空响应必须报 response.failed，不能再谎报 response
     assert.ok(text.includes('event: response.failed'), '必须显式发 response.failed');
     assert.ok(text.includes('"status":"failed"'), 'response.status 必须是 failed');
     assert.ok(text.includes('"code":"upstream_error"'), '错误码按本文件既有失败口径取 upstream_error');
-    assert.ok(text.includes('Empty response from upstream (zero output tokens)'), '错误消息要说明是空响应');
+    assert.ok(text.includes('上游返回空响应（输出 token 为 0）'), '错误消息要说明是空响应');
     assert.ok(!text.includes('response.completed'),
       '零输出绝不能发 response.completed —— 那是把空响应谎报成功（#38/#39 同类问题）');
     assert.ok(!text.includes('Cannot write headers after they are sent'),
@@ -54,6 +54,6 @@ test('#56 非流式：空响应仍是 HTTP 429（该路径守卫未被 #54 波�
     assert.equal(r.status, 429, '非流式没有提前发响应头，旧语义（429）应原样保留');
     const json = await r.json();
     assert.equal(json.error.type, 'rate_limit_error');
-    assert.equal(json.error.message, 'Empty response from upstream (zero output tokens)');
+    assert.equal(json.error.message, '上游返回空响应（输出 token 为 0）');
   } finally { await s.close(); }
 });

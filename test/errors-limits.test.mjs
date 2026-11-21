@@ -152,8 +152,8 @@ test('413 报错包含实际请求体积（客户端要知道超了多少）', a
     const r = await s.proxy.post('/v1/chat/completions', body, AUTH);
     assert.equal(r.status, 413);
     const j = await r.json();
-    assert.match(j.error.message, /exceeds 1MB limit/);
-    assert.match(j.error.message, /body is \d+\.\d+MB/,
+    assert.match(j.error.message, /超过 1MB 上限/);
+    assert.match(j.error.message, /实际体积 \d+\.\d+MB/,
       '必须报出实际体积，不能只说上限。实际消息：' + j.error.message);
 
     // 日志是经 stdout 异步送到测试进程的，可能晚于 HTTP 响应到达 ——
@@ -161,7 +161,7 @@ test('413 报错包含实际请求体积（客户端要知道超了多少）', a
     // 轮询到有界超时，既保留这条覆盖又不引入竞态。
     let sawLog = false;
     for (let i = 0; i < 40 && !sawLog; i++) {
-      sawLog = s.proxy.logs().includes('Request body rejected (too large)');
+      sawLog = s.proxy.logs().includes('请求体被拒（超出上限）');
       if (!sawLog) await new Promise(r => setTimeout(r, 50));
     }
     assert.ok(sawLog, '应有一条可 grep 的 warn 日志，便于运维统计实际体积分布');
